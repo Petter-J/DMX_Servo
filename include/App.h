@@ -41,6 +41,9 @@ private:
     uint32_t lastUiMs = 0;
     bool menuInputArmed = false;
     bool startArmedInRun = true;
+    bool requireReleaseAfterMenu = false;
+
+    uint8_t lastValue = 0; // 0..255
 
     void handleRun();
     void handleMenuMain();

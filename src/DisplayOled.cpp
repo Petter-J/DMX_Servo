@@ -42,22 +42,62 @@ void DisplayOled::begin()
     delay(300);
 }
 
-void DisplayOled::drawRun(const RuntimeSettings &s)
+void DisplayOled::drawRun(const RuntimeSettings &rt, uint8_t currentValue, bool pbPlaying, uint8_t pbSlot1to10)
 {
-    clearAndHome();
-    d.setTextSize(1);
+    d.clearDisplay();
+    d.setTextColor(SH110X_WHITE);
 
-    d.print("RUN ");
-    d.println(modeName(s.inputMode));
+    // Rad 1
+    d.setTextSize(2);
+    d.setCursor(0, 0);
 
-    d.print("DMX Addr: ");
-    d.println(s.dmxAddress);
+    switch (rt.inputMode)
+    {
+    case InputMode::DMX:
+        d.print("DMX");
+        break;
+    case InputMode::SLIDER:
+        d.print("SLIDER");
+        break;
+    case InputMode::PLAYBACK:
+        d.print("PLAYBACK");
+        if (pbPlaying)
+        {
+            d.print("");
+            d.print(pbSlot1to10); // visa bara under spelning
+        }
+        break;
+    default:
+        d.print("?");
+        break;
+    }
 
-    d.print("PB: ");
-    d.println(s.selectedPlayback);
+    // Rad 2
+    d.setTextSize(2);
+    d.setCursor(0, 22);
 
-    d.setCursor(0, 54);
-    d.print("Hold START 2s=Menu");
+    if (rt.inputMode == InputMode::DMX)
+    {
+        d.print("Addr:");
+        d.print(rt.dmxAddress);
+    }
+    else if (rt.inputMode == InputMode::SLIDER)
+    {
+        d.print("Value:");
+        d.print(currentValue);
+    }
+    else
+    {
+        d.print("PB:");
+        d.print(rt.selectedPlayback);
+
+        d.setTextSize(1);
+        d.setCursor(0, 45);
+        d.print("CHOOSE PB: +/-");
+        d.setCursor(0, 56);
+        d.print("START/STOP:PB ON/OFF");
+    }
+
     d.display();
 }
 

@@ -1,11 +1,11 @@
 #include "Playback.h"
+#include <Preferences.h>
 
 void Playback::begin() {}
 
 void Playback::startRecording(uint8_t slotIndex)
 {
-    if (slotIndex > 9)
-        return;
+    if (slotIndex > 9) return;
     recSlot = slotIndex;
 
     slots[recSlot].len = 0;
@@ -17,12 +17,10 @@ void Playback::startRecording(uint8_t slotIndex)
 
 void Playback::tickRecord(uint8_t sliderValue)
 {
-    if (!recording)
-        return;
+    if (!recording) return;
 
     uint32_t now = millis();
-    if (now - recLastMs < SAMPLE_MS)
-        return;
+    if (now - recLastMs < SAMPLE_MS) return;
     recLastMs = now;
 
     auto &s = slots[recSlot];
@@ -34,8 +32,7 @@ void Playback::tickRecord(uint8_t sliderValue)
 
 void Playback::stopRecording()
 {
-    if (!recording)
-        return;
+    if (!recording) return;
 
     slots[recSlot].recorded = (slots[recSlot].len > 0);
     lastRecSlot = recSlot;
@@ -44,17 +41,14 @@ void Playback::stopRecording()
 
 bool Playback::isRecorded(uint8_t slotIndex) const
 {
-    if (slotIndex > 9)
-        return false;
+    if (slotIndex > 9) return false;
     return slots[slotIndex].recorded;
 }
 
 void Playback::startPlaying(uint8_t slotIndex)
 {
-    if (slotIndex > 9)
-        return;
-    if (!slots[slotIndex].recorded || slots[slotIndex].len == 0)
-        return;
+    if (slotIndex > 9) return;
+    if (!slots[slotIndex].recorded || slots[slotIndex].len == 0) return;
 
     playSlot = slotIndex;
     playPos = 0;
@@ -80,7 +74,7 @@ uint8_t Playback::currentPlayingSlot() const
 uint8_t Playback::tickPlaybackValue()
 {
     if (!playing)
-        return slots[playSlot].data[playPos]; // eller 0, spelar mindre roll om App skyddar
+        return slots[playSlot].data[playPos];
 
     auto &s = slots[playSlot];
     if (s.len == 0)
@@ -96,14 +90,8 @@ uint8_t Playback::tickPlaybackValue()
     {
         playLastMs = now;
 
-        if (playPos + 1 < s.len)
-        {
-            playPos++;
-        }
-        else
-        {
-            playing = false; // slut
-        }
+        if (playPos + 1 < s.len) playPos++;
+        else playing = false; // slut
     }
 
     return out;
@@ -111,20 +99,80 @@ uint8_t Playback::tickPlaybackValue()
 
 void Playback::eraseRecording(uint8_t slotIndex)
 {
-    if (slotIndex > 9)
-        return;
+    if (slotIndex > 9) return;
+
     slots[slotIndex].recorded = false;
     slots[slotIndex].len = 0;
 
-    // om vi raderar slot som spelas, stoppa playback
-    if (playing && playSlot == slotIndex)
+    if (playing && playSlot == slotIndex) playing = false;
+    if (lastRecSlot == slotIndex) lastRecSlot = 0;
+}
+
+bool Playback::saveAllToFlash()
+{
+    Preferences p;
+    if (!p.begin("playback", false)) return false; // RW
+
+    p.putUChar("ver", 1);
+
+    for (uint8_t i = 0; i < 10; i++)
     {
-        playing = false;
+        char kRec[8], kLen[8], kDat[8];
+        snprintf(kRec, sizeof(kRec), "r%u", i);
+        snprintf(kLen, sizeof(kLen), "l%u", i);
+        snprintf(kDat, sizeof(kDat), "d%u", i);
+
+        p.putBool(kRec, slots[i].recorded);
+
+        uint16_t len = slots[i].recorded ? slots[i].len : 0;
+        if (len > MAX_SAMPLES) len = MAX_SAMPLES;
+        p.putUShort(kLen, len);
+
+        if (len > 0) p.putBytes(kDat, slots[i].data, len);
+        else p.remove(kDat);
     }
 
-    // om vi raderar "senast inspelad", välj 0 som default
-    if (lastRecSlot == slotIndex)
+    p.end();
+    return true;
+}
+
+bool Playback::loadAllFromFlash()
+{
+    Preferences p;
+    if (!p.begin("playback", true)) return false; // RO
+
+    uint8_t ver = p.getUChar("ver", 0);
+    if (ver != 1)
     {
-        lastRecSlot = 0;
+        p.end();
+        return false;
     }
+
+    for (uint8_t i = 0; i < 10; i++)
+    {
+        char kRec[8], kLen[8], kDat[8];
+        snprintf(kRec, sizeof(kRec), "r%u", i);
+        snprintf(kLen, sizeof(kLen), "l%u", i);
+        snprintf(kDat, sizeof(kDat), "d%u", i);
+
+        bool rec = p.getBool(kRec, false);
+        uint16_t len = p.getUShort(kLen, 0);
+        if (len > MAX_SAMPLES) len = MAX_SAMPLES;
+
+        slots[i].recorded = rec && (len > 0);
+        slots[i].len = slots[i].recorded ? len : 0;
+
+        if (slots[i].recorded)
+        {
+            size_t got = p.getBytes(kDat, slots[i].data, slots[i].len);
+            if (got != slots[i].len)
+            {
+                slots[i].recorded = false;
+                slots[i].len = 0;
+            }
+        }
+    }
+
+    p.end();
+    return true;
 }

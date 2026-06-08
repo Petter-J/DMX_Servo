@@ -11,6 +11,6 @@
 #define DMX_TX_PIN 17
 #define DMX_EN_PIN 4
 
-static constexpr uint8_t SERVO_MIN = 20;  // justerbar
-static constexpr uint8_t SERVO_MAX = 230; // justerbar
+static constexpr uint8_t SERVO_MIN = 10;  // justerbar
+static constexpr uint8_t SERVO_MAX = 245; // justerbar
 static constexpr uint8_t PLAYBACK_STOP_VALUE_DEFAULT = 127; // 0..255

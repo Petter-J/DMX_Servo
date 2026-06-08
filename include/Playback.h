@@ -21,8 +21,12 @@ public:
     bool isPlaying() const;
     uint8_t currentPlayingSlot() const;
 
+    // NYTT: persistens
+    bool saveAllToFlash();
+    bool loadAllFromFlash();
+
 private:
-    static constexpr uint16_t MAX_SAMPLES = 500; // 500*20ms = 10s
+    static constexpr uint16_t MAX_SAMPLES = 3000; // 3000*20ms = 60s
     static constexpr uint16_t SAMPLE_MS = 20;
 
     struct SlotMeta

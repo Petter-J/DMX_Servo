@@ -54,29 +54,33 @@ void Buttons::upd(B &b)
 
 void Buttons::update()
 {
-    // 1) Nolla publika events varje tick
     startShort = false;
     startLong1s = false;
     startLong2s = false;
     stopShort = false;
-    stopLong1s = false; // ny
+    stopLong1s = false;
     plusShort = false;
     minusShort = false;
+    startHeld = false; // LÄGG TILL
+    plusHeld = false;
+    minusHeld = false;
 
-    // 2) Uppdatera intern states
     upd(bStart);
     upd(bStop);
     upd(bPlus);
     upd(bMinus);
 
-    // 3) Sätt events för just denna tick
     startShort = bStart.shortEv;
     startLong1s = bStart.l1Ev;
     startLong2s = bStart.l2Ev;
     stopShort = bStop.shortEv;
-    stopLong1s = bStop.l1Ev; // ny
+    stopLong1s = bStop.l1Ev;
     plusShort = bPlus.shortEv;
     minusShort = bMinus.shortEv;
+
+    startHeld = bStart.stable; // LÄGG TILL
+    plusHeld = bPlus.stable;
+    minusHeld = bMinus.stable;
 }
 
 void Buttons::clearEvents()
@@ -87,6 +91,8 @@ void Buttons::clearEvents()
     bMinus.shortEv = bMinus.l1Ev = bMinus.l2Ev = false;
 
     startShort = startLong1s = startLong2s = false;
-    stopShort = stopLong1s = false; // ny
+    stopShort = stopLong1s = false;
     plusShort = minusShort = false;
+    startHeld = false;
+    plusHeld = minusHeld = false; // NY
 }

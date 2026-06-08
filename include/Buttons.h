@@ -13,9 +13,14 @@ public:
     bool startLong1s = false;
     bool startLong2s = false;
     bool stopShort = false;
-    bool stopLong1s = false; // ny
+    bool stopLong1s = false;
     bool plusShort = false;
     bool minusShort = false;
+    bool startHeld = false;
+
+    // NYA (för hold/repeat)
+    bool plusHeld = false;
+    bool minusHeld = false;
 
 private:
     struct B

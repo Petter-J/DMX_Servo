@@ -15,8 +15,10 @@ void App::begin()
     inputs.begin();
     ui.begin();
     playback.begin();
+    playback.loadAllFromFlash();
 
-    ui.drawRun(runtime);
+    uint8_t shownPb = playback.isPlaying() ? (playback.currentPlayingSlot() + 1) : 0;
+    ui.drawRun(runtime, lastValue, playback.isPlaying(), shownPb);
 }
 
 void App::tick()
@@ -51,18 +53,23 @@ void App::tick()
 
 void App::handleRun()
 {
+    if (requireReleaseAfterMenu)
+    {
+        // Blockera START tills fysisk release av START-knappen
+        if (!buttons.startHeld)
+            requireReleaseAfterMenu = false;
+    }
+
     if (runtime.inputMode == InputMode::PLAYBACK)
     {
-        if (buttons.startShort)
+        if (!requireReleaseAfterMenu && buttons.startShort)
         {
             uint8_t idx = (runtime.selectedPlayback > 0) ? (runtime.selectedPlayback - 1) : 0;
             playback.startPlaying(idx);
         }
 
         if (buttons.stopShort)
-        {
             playback.stopPlaying();
-        }
 
         if (buttons.plusShort)
         {
@@ -101,9 +108,9 @@ void App::handleRun()
     }
 
     sendCurrentValue();
-    ui.drawRun(runtime);
+    uint8_t shownPb = playback.isPlaying() ? (playback.currentPlayingSlot() + 1) : 0;
+    ui.drawRun(runtime, lastValue, playback.isPlaying(), shownPb);
 }
-
 void App::handleMenuMain()
 {
     if (!menuInputArmed)
@@ -159,6 +166,7 @@ void App::handleMenuMain()
                 playback.stopPlaying();
             }
 
+            requireReleaseAfterMenu = true;
             state = RUN;
         }
         else if (menu.mainIndex() == Menu::ITEM_SAVE)
@@ -175,7 +183,9 @@ void App::handleMenuMain()
                 playback.stopPlaying();
             }
 
-            // settingsStore.save(runtime); // avstängd under RAM-test
+            settingsStore.save(runtime); // AKTIV
+            playback.saveAllToFlash();
+            requireReleaseAfterMenu = true;
             state = RUN;
         }
     }
@@ -195,10 +205,84 @@ void App::handleEditInput()
 
 void App::handleEditDmx()
 {
-    if (buttons.plusShort && edit.dmxAddress < 512)
-        edit.dmxAddress++;
-    if (buttons.minusShort && edit.dmxAddress > 1)
-        edit.dmxAddress--;
+    static uint32_t nextRptPlus = 0, nextRptMinus = 0;
+    static uint16_t plusRepeats = 0, minusRepeats = 0;
+
+    const uint32_t FIRST_DELAY_MS = 350;
+    const uint32_t REPEAT_MS = 70;
+
+    auto stepFor = [](uint16_t repeats) -> uint16_t
+    {
+        return (repeats < 10) ? 1 : 10; // första 10 steg = 1, sen 10
+    };
+
+    auto wrapAdd = [](uint16_t v, uint16_t step) -> uint16_t
+    {
+        // område 1..512
+        uint16_t x = (uint16_t)(v - 1);   // 0..511
+        x = (uint16_t)((x + step) % 512); // wrap
+        return (uint16_t)(x + 1);         // 1..512
+    };
+
+    auto wrapSub = [](uint16_t v, uint16_t step) -> uint16_t
+    {
+        // område 1..512
+        uint16_t x = (uint16_t)(v - 1); // 0..511
+        step = (uint16_t)(step % 512);
+        x = (uint16_t)((x + 512 - step) % 512); // wrap bakåt
+        return (uint16_t)(x + 1);               // 1..512
+    };
+
+    uint32_t now = millis();
+
+    // Korttryck
+    if (buttons.plusShort)
+        edit.dmxAddress = wrapAdd(edit.dmxAddress, 1);
+    if (buttons.minusShort)
+        edit.dmxAddress = wrapSub(edit.dmxAddress, 1);
+
+    // PLUS hold
+    if (buttons.plusHeld)
+    {
+        if (nextRptPlus == 0)
+        {
+            nextRptPlus = now + FIRST_DELAY_MS;
+            plusRepeats = 0;
+        }
+        if (now >= nextRptPlus)
+        {
+            uint16_t step = stepFor(plusRepeats++);
+            edit.dmxAddress = wrapAdd(edit.dmxAddress, step);
+            nextRptPlus = now + REPEAT_MS;
+        }
+    }
+    else
+    {
+        nextRptPlus = 0;
+        plusRepeats = 0;
+    }
+
+    // MINUS hold
+    if (buttons.minusHeld)
+    {
+        if (nextRptMinus == 0)
+        {
+            nextRptMinus = now + FIRST_DELAY_MS;
+            minusRepeats = 0;
+        }
+        if (now >= nextRptMinus)
+        {
+            uint16_t step = stepFor(minusRepeats++);
+            edit.dmxAddress = wrapSub(edit.dmxAddress, step);
+            nextRptMinus = now + REPEAT_MS;
+        }
+    }
+    else
+    {
+        nextRptMinus = 0;
+        minusRepeats = 0;
+    }
+
     if (buttons.startShort)
         state = MENU_MAIN;
     ui.drawEditDmx(edit);
@@ -273,6 +357,8 @@ void App::sendCurrentValue()
                 ? playback.tickPlaybackValue() // 0..255
                 : runtime.playbackStopValue;   // 0..255
     }
+
+    lastValue = v; // <-- NY: till display rad 2
 
     // ALL output till servo via min/max mapping
     uint8_t out = (uint8_t)map((int)v, 0, 255, SERVO_MIN, SERVO_MAX);
