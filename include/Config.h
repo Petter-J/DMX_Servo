@@ -14,3 +14,5 @@
 static constexpr uint8_t SERVO_MIN = 10;  // justerbar
 static constexpr uint8_t SERVO_MAX = 245; // justerbar
 static constexpr uint8_t PLAYBACK_STOP_VALUE_DEFAULT = 127; // 0..255
+
+static constexpr uint8_t PLAYBACK_SLOTS = 9;

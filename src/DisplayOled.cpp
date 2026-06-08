@@ -1,4 +1,5 @@
 #include "DisplayOled.h"
+#include "Config.h"
 
 const char *DisplayOled::modeName(InputMode m) const
 {
@@ -23,7 +24,6 @@ void DisplayOled::clearAndHome()
 
 void DisplayOled::begin()
 {
-    // SparkFun ESP32 Thing Plus I2C
     Wire.begin(21, 22);
     Wire.setTimeOut(50);
 
@@ -42,12 +42,11 @@ void DisplayOled::begin()
     delay(300);
 }
 
-void DisplayOled::drawRun(const RuntimeSettings &rt, uint8_t currentValue, bool pbPlaying, uint8_t pbSlot1to10)
+void DisplayOled::drawRun(const RuntimeSettings &rt, uint8_t currentValue, bool pbPlaying, uint8_t pbSlot1to9)
 {
     d.clearDisplay();
     d.setTextColor(SH110X_WHITE);
 
-    // Rad 1
     d.setTextSize(2);
     d.setCursor(0, 0);
 
@@ -63,8 +62,8 @@ void DisplayOled::drawRun(const RuntimeSettings &rt, uint8_t currentValue, bool 
         d.print("PLAYBACK");
         if (pbPlaying)
         {
-            d.print("");
-            d.print(pbSlot1to10); // visa bara under spelning
+            d.print(" ");
+            d.print(pbSlot1to9);
         }
         break;
     default:
@@ -72,7 +71,6 @@ void DisplayOled::drawRun(const RuntimeSettings &rt, uint8_t currentValue, bool 
         break;
     }
 
-    // Rad 2
     d.setTextSize(2);
     d.setCursor(0, 22);
 
@@ -101,7 +99,7 @@ void DisplayOled::drawRun(const RuntimeSettings &rt, uint8_t currentValue, bool 
     d.display();
 }
 
-void DisplayOled::drawMainMenu(const Menu &menu, const RuntimeSettings &edit)
+void DisplayOled::drawMainMenu(const Menu &menu, const RuntimeSettings &edit, const Playback &playback)
 {
     static const char *names[] = {"Input Mode", "DMX Address", "Playback", "EXIT", "SAVE"};
 
@@ -126,8 +124,17 @@ void DisplayOled::drawMainMenu(const Menu &menu, const RuntimeSettings &edit)
         }
         else if (i == Menu::ITEM_PLAYBACK)
         {
+            uint8_t recCount = 0;
+            for (uint8_t s = 0; s < PLAYBACK_SLOTS; ++s)
+            {
+                if (playback.isRecorded(s))
+                    recCount++;
+            }
+
             d.print(": ");
-            d.print(edit.selectedPlayback);
+            d.print(recCount);
+            d.print("/");
+            d.print(PLAYBACK_SLOTS);
         }
     }
 
@@ -169,8 +176,9 @@ void DisplayOled::drawPlaybackRecList(const Menu &menu, const Playback &playback
     d.println("Playback REC");
 
     int idx = menu.recIndex();
+    int maxIdx = PLAYBACK_SLOTS; // sista = BACK
     int start = max(0, idx - 1);
-    int end = min(10, start + 3);
+    int end = min(maxIdx, start + 3);
     int row = 0;
 
     for (int i = start; i <= end; i++)
@@ -178,7 +186,7 @@ void DisplayOled::drawPlaybackRecList(const Menu &menu, const Playback &playback
         d.setCursor(0, 12 + row * 12);
         d.print((i == idx) ? ">" : " ");
 
-        if (i < 10)
+        if (i < PLAYBACK_SLOTS)
         {
             d.print("Slot ");
             d.print(i + 1);

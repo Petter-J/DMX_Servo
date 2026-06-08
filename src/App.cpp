@@ -74,23 +74,23 @@ void App::handleRun()
         if (buttons.plusShort)
         {
             uint8_t cur = (runtime.selectedPlayback > 0) ? (runtime.selectedPlayback - 1) : 0;
-            for (uint8_t step = 1; step <= 10; ++step)
+            for (uint8_t step = 1; step <= PLAYBACK_SLOTS; ++step)
             {
-                uint8_t cand = (cur + step) % 10;
+                uint8_t cand = (cur + step) % PLAYBACK_SLOTS;
                 if (playback.isRecorded(cand))
                 {
-                    runtime.selectedPlayback = cand + 1;
+                    runtime.selectedPlayback = cand + 1; // 1..9
                     break;
                 }
             }
         }
 
-        if (buttons.minusShort)
+        if(buttons.minusShort)
         {
-            uint8_t cur = (runtime.selectedPlayback > 0) ? (runtime.selectedPlayback - 1) : 0;
-            for (uint8_t step = 1; step <= 10; ++step)
+            uint8_t cur = (runtime.selectedPlayback > 0) ? (runtime.selectedPlayback - 1) : 0; // <-- saknades
+            for (uint8_t step = 1; step <= PLAYBACK_SLOTS; ++step)
             {
-                uint8_t cand = (cur + 10 - step) % 10;
+                uint8_t cand = (cur + PLAYBACK_SLOTS - step) % PLAYBACK_SLOTS;
                 if (playback.isRecorded(cand))
                 {
                     runtime.selectedPlayback = cand + 1;
@@ -125,7 +125,7 @@ void App::handleMenuMain()
             menuInputArmed = true;
         }
 
-        ui.drawMainMenu(menu, edit);
+        ui.drawMainMenu(menu, edit, playback);
         return;
     }
 
@@ -156,15 +156,8 @@ void App::handleMenuMain()
         {
             runtime = edit;
 
-            if (runtime.inputMode == InputMode::PLAYBACK)
-            {
-                uint8_t idx = (runtime.selectedPlayback > 0) ? (runtime.selectedPlayback - 1) : 0;
-                playback.startPlaying(idx);
-            }
-            else
-            {
-                playback.stopPlaying();
-            }
+            // Starta aldrig playback automatiskt från meny-exit
+            playback.stopPlaying();
 
             requireReleaseAfterMenu = true;
             state = RUN;
@@ -173,25 +166,19 @@ void App::handleMenuMain()
         {
             runtime = edit;
 
-            if (runtime.inputMode == InputMode::PLAYBACK)
-            {
-                uint8_t idx = (runtime.selectedPlayback > 0) ? (runtime.selectedPlayback - 1) : 0;
-                playback.startPlaying(idx);
-            }
-            else
-            {
-                playback.stopPlaying();
-            }
+            // Starta aldrig playback automatiskt från save heller
+            playback.stopPlaying();
 
-            settingsStore.save(runtime); // AKTIV
+            settingsStore.save(runtime);
             playback.saveAllToFlash();
+
             requireReleaseAfterMenu = true;
             state = RUN;
         }
     }
-    ui.drawMainMenu(menu, edit);
-}
 
+    ui.drawMainMenu(menu, edit, playback);
+}
 void App::handleEditInput()
 {
     if (buttons.plusShort)

@@ -1,5 +1,6 @@
 #pragma once
 #include <Arduino.h>
+#include "Config.h"
 
 class Menu
 {
@@ -22,11 +23,11 @@ public:
     void enterPlaybackRecList();
     void updatePlaybackRecNavigation(bool plus, bool minus);
     bool playbackRecIsBack() const;
-    uint8_t playbackRecSlotIndex() const; // 0..9
+    uint8_t playbackRecSlotIndex() const; // 0..PLAYBACK_SLOTS-1
 
 private:
     uint8_t mainIdx = 0;
-    int recIdx = 0; // 0..10, where 10=BACK
+    int recIdx = 0; // 0..PLAYBACK_SLOTS, där PLAYBACK_SLOTS = BACK
 
 public:
     int recIndex() const { return recIdx; }
