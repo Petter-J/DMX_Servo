@@ -4,16 +4,42 @@
 #include <ESP32Servo.h>
 
 #define SERVO_PIN 18
+
+// Servo-gränser i grader
 #define SERVO_MIN 10
 #define SERVO_CENTER 90
 #define SERVO_MAX 168
 
+#define RX_TIMEOUT_MS 500
+
 Servo servo;
+
+uint32_t lastRxMs = 0;
 
 struct ServoData
 {
-  uint8_t dmx;
+  uint8_t dmx; // 0–255 från TX
 };
+
+void writeServoFromValue(uint8_t value)
+{
+  int angle;
+
+  if (value <= 127)
+  {
+    angle = map(value, 0, 127, SERVO_MIN, SERVO_CENTER);
+  }
+  else
+  {
+    angle = map(value, 128, 255, SERVO_CENTER, SERVO_MAX);
+  }
+
+  angle = constrain(angle, SERVO_MIN, SERVO_MAX);
+
+  servo.write(angle);
+
+  Serial.printf("DMX=%u Servo=%d grader\n", value, angle);
+}
 
 void onReceive(const uint8_t *mac, const uint8_t *data, int len)
 {
@@ -26,33 +52,38 @@ void onReceive(const uint8_t *mac, const uint8_t *data, int len)
   ServoData rx;
   memcpy(&rx, data, sizeof(rx));
 
-  int angle;
-  if (rx.dmx <= 127)
-    angle = map(rx.dmx, 0, 127, SERVO_MIN, SERVO_CENTER);
-  else
-    angle = map(rx.dmx, 128, 255, SERVO_CENTER, SERVO_MAX);
+  lastRxMs = millis();
 
-  angle = constrain(angle, SERVO_MIN, SERVO_MAX);
-  servo.write(angle);
-
-  Serial.printf("DMX=%u Servo=%d\n", rx.dmx, angle);
+  writeServoFromValue(rx.dmx);
 }
 
 void setup()
 {
   Serial.begin(115200);
+
   WiFi.mode(WIFI_STA);
+  WiFi.disconnect();
 
   servo.attach(SERVO_PIN);
+  servo.write(SERVO_CENTER);
+
+  lastRxMs = millis();
 
   if (esp_now_init() != ESP_OK)
   {
     Serial.println("esp_now_init FAIL");
     return;
   }
+
   esp_now_register_recv_cb(onReceive);
 
   Serial.println("RX klar");
 }
 
-void loop() {}
+void loop()
+{
+  if (millis() - lastRxMs > RX_TIMEOUT_MS)
+  {
+    servo.write(SERVO_CENTER);
+  }
+}

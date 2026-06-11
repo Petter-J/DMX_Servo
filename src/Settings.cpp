@@ -1,4 +1,5 @@
 #include "Settings.h"
+#include "Playback.h"
 
 void SettingsStore::begin() {}
 
@@ -11,8 +12,8 @@ void SettingsStore::clamp(RuntimeSettings &s)
 
     if (s.selectedPlayback < 1)
         s.selectedPlayback = 1;
-    if (s.selectedPlayback > 10)
-        s.selectedPlayback = 10;
+    if (s.selectedPlayback > PLAYBACK_SLOTS)
+        s.selectedPlayback = PLAYBACK_SLOTS;
 
     // 0..255 behövs egentligen inte för uint8_t, men tydligt:
     // s.playbackStopValue är alltid 0..255

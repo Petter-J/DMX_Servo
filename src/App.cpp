@@ -1,5 +1,5 @@
 #include "App.h"
-#include "Config.h" // <-- säkerställ att denna finns för SERVO_MIN/MAX
+#include "Config.h" 
 
 void App::begin()
 {
@@ -313,8 +313,7 @@ void App::handlePlaybackRecording()
     playback.tickRecord(v);
 
     // LIVE under recording ska också respektera servo min/max:
-    uint8_t out = (uint8_t)map((int)v, 0, 255, SERVO_MIN, SERVO_MAX);
-    transport.send(out);
+    transport.send(v);
 
     if (buttons.stopShort)
     {
@@ -347,7 +346,5 @@ void App::sendCurrentValue()
 
     lastValue = v; // <-- NY: till display rad 2
 
-    // ALL output till servo via min/max mapping
-    uint8_t out = (uint8_t)map((int)v, 0, 255, SERVO_MIN, SERVO_MAX);
-    transport.send(out);
+    transport.send(v);
 }
