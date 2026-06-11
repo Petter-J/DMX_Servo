@@ -15,8 +15,14 @@ void SettingsStore::clamp(RuntimeSettings &s)
     if (s.selectedPlayback > PLAYBACK_SLOTS)
         s.selectedPlayback = PLAYBACK_SLOTS;
 
-    // 0..255 behövs egentligen inte för uint8_t, men tydligt:
-    // s.playbackStopValue är alltid 0..255
+    if (s.servoMin > 89)
+        s.servoMin = 89;
+
+    if (s.servoMax < 91)
+        s.servoMax = 91;
+
+    if (s.servoMax > 180)
+        s.servoMax = 180;
 }
 
 RuntimeSettings SettingsStore::load()
@@ -27,7 +33,10 @@ RuntimeSettings SettingsStore::load()
     s.dmxAddress = prefs.getUShort("dmxAddr", 1);
     s.selectedPlayback = prefs.getUChar("pbSel", 1);
     s.inputMode = static_cast<InputMode>(prefs.getUChar("inMode", 0));
-    s.playbackStopValue = prefs.getUChar("pbStop", PLAYBACK_STOP_VALUE_DEFAULT); // <-- ny
+    s.playbackStopValue = prefs.getUChar("pbStop", PLAYBACK_STOP_VALUE_DEFAULT);
+
+    s.servoMin = prefs.getUChar("servoMin", 10);
+    s.servoMax = prefs.getUChar("servoMax", 170);
 
     prefs.end();
     clamp(s);
@@ -44,7 +53,10 @@ void SettingsStore::save(const RuntimeSettings &sIn)
     prefs.putUShort("dmxAddr", s.dmxAddress);
     prefs.putUChar("pbSel", s.selectedPlayback);
     prefs.putUChar("inMode", static_cast<uint8_t>(s.inputMode));
-    prefs.putUChar("pbStop", s.playbackStopValue); // <-- ny
+    prefs.putUChar("pbStop", s.playbackStopValue);
+
+    prefs.putUChar("servoMin", s.servoMin);
+    prefs.putUChar("servoMax", s.servoMax);
 
     prefs.end();
 }

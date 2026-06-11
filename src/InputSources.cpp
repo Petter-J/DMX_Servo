@@ -36,9 +36,10 @@ uint8_t InputSources::readDmx(uint16_t address)
     {
         dmx_read(dmxPort, dmxData, packet.size);
 
-        // DMX-adresser är 1..512, array-index är 0..511
-        uint16_t idx = address - 1;
-        if (idx < packet.size) // extra skydd
+        // esp_dmx: dmxData[0] = start code, kanal 1 = dmxData[1]
+        uint16_t idx = address;
+
+        if (idx < packet.size)
             lastGood = dmxData[idx];
     }
 

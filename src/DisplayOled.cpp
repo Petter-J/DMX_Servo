@@ -1,6 +1,11 @@
 #include "DisplayOled.h"
 #include "Config.h"
 
+static int servoRel(uint8_t angle)
+{
+    return (int)angle - 90;
+}
+
 const char *DisplayOled::modeName(InputMode m) const
 {
     switch (m)
@@ -42,7 +47,7 @@ void DisplayOled::begin()
     delay(300);
 }
 
-void DisplayOled::drawRun(const RuntimeSettings &rt, uint8_t currentValue, bool pbPlaying, uint8_t pbSlot1to9)
+void DisplayOled::drawRun(const RuntimeSettings &rt, uint8_t currentValue, uint8_t angle, bool pbPlaying, uint8_t pbSlot1to9)
 {
     d.clearDisplay();
     d.setTextColor(SH110X_WHITE);
@@ -53,7 +58,6 @@ void DisplayOled::drawRun(const RuntimeSettings &rt, uint8_t currentValue, bool 
     switch (rt.inputMode)
     {
     case InputMode::DMX:
-        d.print("DMX");
         break;
     case InputMode::SLIDER:
         d.print("SLIDER");
@@ -76,13 +80,35 @@ void DisplayOled::drawRun(const RuntimeSettings &rt, uint8_t currentValue, bool 
 
     if (rt.inputMode == InputMode::DMX)
     {
-        d.print("Addr:");
+        d.setTextSize(2);
+        d.setCursor(0, 0);
+        d.print("DMX ");
         d.print(rt.dmxAddress);
+
+        d.setCursor(0, 22);
+        d.print("Value:");
+        d.print(currentValue);
+
+        d.setCursor(0, 45);
+        d.print("Angle:");
+
+        int a = servoRel(angle);
+        if (a >= 0)
+            d.print("+");
+        d.print(a);
     }
     else if (rt.inputMode == InputMode::SLIDER)
     {
         d.print("Value:");
         d.print(currentValue);
+
+        d.setCursor(0, 45);
+        d.print("Angle:");
+
+        int a = servoRel(angle);
+        if (a >= 0)
+            d.print("+");
+        d.print(a);
     }
     else
     {
@@ -101,14 +127,14 @@ void DisplayOled::drawRun(const RuntimeSettings &rt, uint8_t currentValue, bool 
 
 void DisplayOled::drawMainMenu(const Menu &menu, const RuntimeSettings &edit, const Playback &playback)
 {
-    static const char *names[] = {"Input Mode", "DMX Address", "Playback", "EXIT", "SAVE"};
+    static const char *names[] = {"Input Mode", "DMX Address", "Playback", "Servo Setup", "EXIT", "SAVE"};
 
     clearAndHome();
     d.setTextSize(1);
 
     for (int i = 0; i < Menu::ITEM_COUNT; i++)
     {
-        d.setCursor(0, i * 12);
+        d.setCursor(0, i * 11);
         d.print((i == menu.mainIndex()) ? ">" : " ");
         d.print(names[i]);
 
@@ -213,6 +239,67 @@ void DisplayOled::drawRecording(uint8_t slot)
 
     d.setCursor(0, 16);
     d.println("STOP to stop");
+
+    d.display();
+}
+
+void DisplayOled::drawServoSetup(const RuntimeSettings &edit, uint8_t index)
+{
+    clearAndHome();
+    d.setTextSize(1);
+
+    d.println("SERVO SETUP");
+
+    d.setCursor(0, 16);
+    d.print(index == 0 ? ">" : " ");
+    d.print(servoRel(edit.servoMin));
+
+    d.setCursor(0, 28);
+    d.print(index == 1 ? ">" : " ");
+    d.print("+");
+    d.print(servoRel(edit.servoMax));
+
+    d.setCursor(0, 40);
+    d.print(index == 2 ? ">" : " ");
+    d.print("BACK");
+
+    d.setCursor(0, 56);
+    d.print("+/- START=Select");
+
+    d.display();
+}
+
+void DisplayOled::drawEditServoMin(const RuntimeSettings &edit)
+{
+    clearAndHome();
+    d.setTextSize(1);
+
+    d.println("EDIT SERVO MIN");
+    d.setCursor(0, 20);
+    d.setTextSize(2);
+    d.println(servoRel(edit.servoMin));
+
+    d.setTextSize(1);
+    d.setCursor(0, 54);
+    d.print("+/-  START=Back");
+
+    d.display();
+}
+
+void DisplayOled::drawEditServoMax(const RuntimeSettings &edit)
+{
+    clearAndHome();
+    d.setTextSize(1);
+
+    d.println("EDIT SERVO MAX");
+    d.setCursor(0, 20);
+    d.setTextSize(2);
+    d.print("+");
+    d.println(servoRel(edit.servoMax));
+
+    d.setTextSize(1);
+    d.setCursor(0, 54);
+    d.print("+/-  START=Back");
 
     d.display();
 }

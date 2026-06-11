@@ -22,7 +22,10 @@ private:
         MENU_EDIT_INPUT,
         MENU_EDIT_DMX,
         MENU_PLAYBACK_REC_LIST,
-        MENU_PLAYBACK_RECORDING
+        MENU_PLAYBACK_RECORDING,
+        MENU_SERVO_SETUP,
+        MENU_EDIT_SERVO_MIN,
+        MENU_EDIT_SERVO_MAX
     };
 
     State state = RUN;
@@ -43,7 +46,9 @@ private:
     bool startArmedInRun = true;
     bool requireReleaseAfterMenu = false;
 
-    uint8_t lastValue = 0; // 0..255
+    uint8_t lastValue = 0;
+    uint8_t lastAngle = 90;
+    uint8_t servoSetupIndex = 0; // 0=Min, 1=Max, 2=Back
 
     void handleRun();
     void handleMenuMain();
@@ -52,6 +57,7 @@ private:
     void handlePlaybackRecList();
     void handlePlaybackRecording();
     void sendCurrentValue();
-
-    
+    void handleServoSetup();
+    void handleEditServoMin();
+    void handleEditServoMax();
 };

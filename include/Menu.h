@@ -10,6 +10,7 @@ public:
         ITEM_INPUT_MODE = 0,
         ITEM_DMX_ADDRESS,
         ITEM_PLAYBACK,
+        ITEM_SERVO_SETUP,
         ITEM_EXIT,
         ITEM_SAVE,
         ITEM_COUNT

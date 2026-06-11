@@ -28,7 +28,10 @@ struct RuntimeSettings
     uint16_t dmxAddress = 1;
     uint8_t selectedPlayback = 1;
 
-    uint8_t playbackStopValue = PLAYBACK_STOP_VALUE_DEFAULT; // <-- lägg till
+    uint8_t playbackStopValue = PLAYBACK_STOP_VALUE_DEFAULT;
+
+    uint8_t servoMin = 10;
+    uint8_t servoMax = 170;
 };
 
 class SettingsStore

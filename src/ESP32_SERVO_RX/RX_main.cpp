@@ -5,41 +5,18 @@
 
 #define SERVO_PIN 18
 
-// Servo-gränser i grader
-#define SERVO_MIN 10
-#define SERVO_CENTER 90
-#define SERVO_MAX 168
-
+#define SERVO_CENTER_DEFAULT 90
 #define RX_TIMEOUT_MS 500
 
 Servo servo;
 
 uint32_t lastRxMs = 0;
+bool failsafeActive = false;
 
 struct ServoData
 {
-  uint8_t dmx; // 0–255 från TX
+  uint8_t angle;
 };
-
-void writeServoFromValue(uint8_t value)
-{
-  int angle;
-
-  if (value <= 127)
-  {
-    angle = map(value, 0, 127, SERVO_MIN, SERVO_CENTER);
-  }
-  else
-  {
-    angle = map(value, 128, 255, SERVO_CENTER, SERVO_MAX);
-  }
-
-  angle = constrain(angle, SERVO_MIN, SERVO_MAX);
-
-  servo.write(angle);
-
-  Serial.printf("DMX=%u Servo=%d grader\n", value, angle);
-}
 
 void onReceive(const uint8_t *mac, const uint8_t *data, int len)
 {
@@ -52,9 +29,14 @@ void onReceive(const uint8_t *mac, const uint8_t *data, int len)
   ServoData rx;
   memcpy(&rx, data, sizeof(rx));
 
-  lastRxMs = millis();
+  uint8_t angle = constrain(rx.angle, 0, 180);
 
-  writeServoFromValue(rx.dmx);
+  lastRxMs = millis();
+  failsafeActive = false;
+
+  servo.write(angle);
+
+  Serial.printf("Servo angle=%u\n", angle);
 }
 
 void setup()
@@ -65,7 +47,7 @@ void setup()
   WiFi.disconnect();
 
   servo.attach(SERVO_PIN);
-  servo.write(SERVO_CENTER);
+  servo.write(SERVO_CENTER_DEFAULT);
 
   lastRxMs = millis();
 
@@ -82,8 +64,10 @@ void setup()
 
 void loop()
 {
-  if (millis() - lastRxMs > RX_TIMEOUT_MS)
+  if (!failsafeActive && millis() - lastRxMs > RX_TIMEOUT_MS)
   {
-    servo.write(SERVO_CENTER);
+    servo.write(SERVO_CENTER_DEFAULT);
+    failsafeActive = true;
+    Serial.println("RX timeout - servo center");
   }
 }

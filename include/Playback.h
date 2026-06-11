@@ -26,8 +26,8 @@ public:
     bool loadAllFromFlash();
 
 private:
-    static constexpr uint16_t MAX_SAMPLES = 3000;
-    static constexpr uint16_t SAMPLE_MS = 20;
+    static constexpr uint16_t MAX_SAMPLES = 6000;
+    static constexpr uint16_t SAMPLE_MS = 50; // 20 Hz = var 50:e ms
 
     struct SlotMeta
     {

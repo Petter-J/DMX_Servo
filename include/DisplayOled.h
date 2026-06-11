@@ -12,12 +12,15 @@ class DisplayOled
 {
 public:
     void begin();
-    void drawRun(const RuntimeSettings &rt, uint8_t currentValue, bool pbPlaying, uint8_t pbSlot1to9);
+    void drawRun(const RuntimeSettings &rt, uint8_t currentValue, uint8_t angle, bool pbPlaying, uint8_t pbSlot1to9);
     void drawMainMenu(const Menu &menu, const RuntimeSettings &edit, const Playback &playback); // ändrad
     void drawEditInput(const RuntimeSettings &edit);
     void drawEditDmx(const RuntimeSettings &edit);
     void drawPlaybackRecList(const Menu &menu, const Playback &playback);
     void drawRecording(uint8_t slot);
+    void drawServoSetup(const RuntimeSettings &edit, uint8_t index);
+    void drawEditServoMin(const RuntimeSettings &edit);
+    void drawEditServoMax(const RuntimeSettings &edit);
 
 private:
     Adafruit_SH1106G d{128, 64, &Wire, -1};

@@ -14,4 +14,4 @@
 
 static constexpr uint8_t PLAYBACK_STOP_VALUE_DEFAULT = 127; // 0..255
 
-static constexpr uint8_t PLAYBACK_SLOTS = 9;
+static constexpr uint8_t PLAYBACK_SLOTS = 5;

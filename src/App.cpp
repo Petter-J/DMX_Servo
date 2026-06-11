@@ -1,5 +1,5 @@
 #include "App.h"
-#include "Config.h" 
+#include "Config.h"
 
 void App::begin()
 {
@@ -18,7 +18,7 @@ void App::begin()
     playback.loadAllFromFlash();
 
     uint8_t shownPb = playback.isPlaying() ? (playback.currentPlayingSlot() + 1) : 0;
-    ui.drawRun(runtime, lastValue, playback.isPlaying(), shownPb);
+    ui.drawRun(runtime, lastValue, lastAngle, playback.isPlaying(), shownPb);
 }
 
 void App::tick()
@@ -45,10 +45,18 @@ void App::tick()
     case MENU_PLAYBACK_RECORDING:
         handlePlaybackRecording();
         break;
+    case MENU_SERVO_SETUP:
+        handleServoSetup();
+        break;
+    case MENU_EDIT_SERVO_MIN:
+        handleEditServoMin();
+        break;
+    case MENU_EDIT_SERVO_MAX:
+        handleEditServoMax();
+        break;
     }
 
     buttons.clearEvents();
-    delay(5);
 }
 
 void App::handleRun()
@@ -109,7 +117,7 @@ void App::handleRun()
 
     sendCurrentValue();
     uint8_t shownPb = playback.isPlaying() ? (playback.currentPlayingSlot() + 1) : 0;
-    ui.drawRun(runtime, lastValue, playback.isPlaying(), shownPb);
+    ui.drawRun(runtime, lastValue, lastAngle, playback.isPlaying(), shownPb);
 }
 void App::handleMenuMain()
 {
@@ -131,20 +139,27 @@ void App::handleMenuMain()
 
     menu.updateMainNavigation(buttons.plusShort, buttons.minusShort);
 
-    if (buttons.startShort)
+    if(buttons.startShort)
     {
         switch (menu.mainIndex())
         {
         case Menu::ITEM_INPUT_MODE:
             state = MENU_EDIT_INPUT;
             break;
+
         case Menu::ITEM_DMX_ADDRESS:
             state = MENU_EDIT_DMX;
             break;
+
         case Menu::ITEM_PLAYBACK:
             menu.enterPlaybackRecList();
             state = MENU_PLAYBACK_REC_LIST;
             break;
+
+        case Menu::ITEM_SERVO_SETUP:
+            state = MENU_SERVO_SETUP;
+            break;
+
         default:
             break;
         }
@@ -306,14 +321,25 @@ void App::handlePlaybackRecList()
     ui.drawPlaybackRecList(menu, playback);
 }
 
+uint8_t valueToServoAngle(uint8_t v, uint8_t servoMin, uint8_t servoMax)
+{
+    const uint8_t servoCenter = 90;
+
+    int angle;
+
+    if (v <= 126)
+        angle = map(v, 0, 126, servoMin, servoCenter);
+    else
+        angle = map(v, 127, 255, servoCenter, servoMax);
+
+    return constrain(angle, 0, 180);
+}
+
 void App::handlePlaybackRecording()
 {
     uint8_t v = inputs.readSlider(); // 0..255
 
     playback.tickRecord(v);
-
-    // LIVE under recording ska också respektera servo min/max:
-    transport.send(v);
 
     if (buttons.stopShort)
     {
@@ -322,7 +348,10 @@ void App::handlePlaybackRecording()
         state = MENU_PLAYBACK_REC_LIST;
     }
 
-    ui.drawRecording(playback.currentRecordingSlot());
+    lastValue = v;
+    lastAngle = valueToServoAngle(v, edit.servoMin, edit.servoMax);
+
+    transport.send(lastAngle);
 }
 
 void App::sendCurrentValue()
@@ -344,7 +373,175 @@ void App::sendCurrentValue()
                 : runtime.playbackStopValue;   // 0..255
     }
 
-    lastValue = v; // <-- NY: till display rad 2
+    lastValue = v;
+    lastAngle = valueToServoAngle(v, runtime.servoMin, runtime.servoMax);
 
-    transport.send(v);
+    transport.send(lastAngle);
+}
+
+void App::handleServoSetup()
+{
+    if (buttons.plusShort)
+        servoSetupIndex = (servoSetupIndex + 1) % 3;
+
+    if (buttons.minusShort)
+        servoSetupIndex = (servoSetupIndex + 3 - 1) % 3;
+
+    if (buttons.startShort)
+    {
+        if (servoSetupIndex == 0)
+            state = MENU_EDIT_SERVO_MIN;
+        else if (servoSetupIndex == 1)
+            state = MENU_EDIT_SERVO_MAX;
+        else
+            state = MENU_MAIN;
+
+        return;
+    }
+
+    if (buttons.stopShort)
+    {
+        state = MENU_MAIN;
+        return;
+    }
+
+    ui.drawServoSetup(edit, servoSetupIndex);
+}
+
+void App::handleEditServoMin()
+{
+    static uint32_t nextRptPlus = 0;
+    static uint32_t nextRptMinus = 0;
+
+    const uint32_t FIRST_DELAY_MS = 350;
+    const uint32_t REPEAT_MS = 70;
+
+    uint32_t now = millis();
+
+    if (buttons.plusShort && edit.servoMin < 89)
+        edit.servoMin++;
+
+    if (buttons.minusShort && edit.servoMin > 0)
+        edit.servoMin--;
+
+    if (buttons.plusHeld)
+    {
+        if (nextRptPlus == 0)
+            nextRptPlus = now + FIRST_DELAY_MS;
+
+        if (now >= nextRptPlus)
+        {
+            if (edit.servoMin < 89)
+                edit.servoMin++;
+
+            nextRptPlus = now + REPEAT_MS;
+        }
+    }
+    else
+    {
+        nextRptPlus = 0;
+    }
+
+    if (buttons.minusHeld)
+    {
+        if (nextRptMinus == 0)
+            nextRptMinus = now + FIRST_DELAY_MS;
+
+        if (now >= nextRptMinus)
+        {
+            if (edit.servoMin > 0)
+                edit.servoMin--;
+
+            nextRptMinus = now + REPEAT_MS;
+        }
+    }
+    else
+    {
+        nextRptMinus = 0;
+    }
+
+    if (edit.servoMin >= 90)
+        edit.servoMin = 89;
+
+    lastAngle = edit.servoMin;
+    transport.send(lastAngle);
+
+    if (buttons.startShort || buttons.stopShort)
+    {
+        nextRptPlus = 0;
+        nextRptMinus = 0;
+        state = MENU_SERVO_SETUP;
+        return;
+    }
+
+    ui.drawEditServoMin(edit);
+}
+
+void App::handleEditServoMax()
+{
+    static uint32_t nextRptPlus = 0;
+    static uint32_t nextRptMinus = 0;
+
+    const uint32_t FIRST_DELAY_MS = 350;
+    const uint32_t REPEAT_MS = 70;
+
+    uint32_t now = millis();
+
+    if (buttons.plusShort && edit.servoMax < 180)
+        edit.servoMax++;
+
+    if (buttons.minusShort && edit.servoMax > 91)
+        edit.servoMax--;
+
+    if (buttons.plusHeld)
+    {
+        if (nextRptPlus == 0)
+            nextRptPlus = now + FIRST_DELAY_MS;
+
+        if (now >= nextRptPlus)
+        {
+            if (edit.servoMax < 180)
+                edit.servoMax++;
+
+            nextRptPlus = now + REPEAT_MS;
+        }
+    }
+    else
+    {
+        nextRptPlus = 0;
+    }
+
+    if (buttons.minusHeld)
+    {
+        if (nextRptMinus == 0)
+            nextRptMinus = now + FIRST_DELAY_MS;
+
+        if (now >= nextRptMinus)
+        {
+            if (edit.servoMax > 91)
+                edit.servoMax--;
+
+            nextRptMinus = now + REPEAT_MS;
+        }
+    }
+    else
+    {
+        nextRptMinus = 0;
+    }
+
+    if (edit.servoMax <= 90)
+        edit.servoMax = 91;
+
+    lastAngle = edit.servoMax;
+    transport.send(lastAngle);
+
+    if (buttons.startShort || buttons.stopShort)
+    {
+        nextRptPlus = 0;
+        nextRptMinus = 0;
+        state = MENU_SERVO_SETUP;
+        return;
+    }
+
+    ui.drawEditServoMax(edit);
 }
