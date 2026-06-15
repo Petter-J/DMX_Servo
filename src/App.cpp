@@ -18,7 +18,15 @@ void App::begin()
     playback.loadAllFromFlash();
 
     uint8_t shownPb = playback.isPlaying() ? (playback.currentPlayingSlot() + 1) : 0;
-    ui.drawRun(runtime, lastValue, lastAngle, playback.isPlaying(), shownPb);
+    uint32_t slotSec = playback.slotSeconds(runtime.selectedPlayback - 1);
+
+    ui.drawRun(runtime,
+               lastValue,
+               lastAngle,
+               playback.isPlaying(),
+               shownPb,
+               playback.playbackSecondsRemaining(),
+               slotSec);
 }
 
 void App::tick()
@@ -117,7 +125,15 @@ void App::handleRun()
 
     sendCurrentValue();
     uint8_t shownPb = playback.isPlaying() ? (playback.currentPlayingSlot() + 1) : 0;
-    ui.drawRun(runtime, lastValue, lastAngle, playback.isPlaying(), shownPb);
+    uint32_t slotSec = playback.slotSeconds(runtime.selectedPlayback - 1);
+
+    ui.drawRun(runtime,
+               lastValue,
+               lastAngle,
+               playback.isPlaying(),
+               shownPb,
+               playback.playbackSecondsRemaining(),
+               slotSec);
 }
 void App::handleMenuMain()
 {
@@ -346,12 +362,16 @@ void App::handlePlaybackRecording()
         playback.stopRecording();
         edit.selectedPlayback = playback.lastRecordedSlot() + 1;
         state = MENU_PLAYBACK_REC_LIST;
+        return;
     }
 
     lastValue = v;
     lastAngle = valueToServoAngle(v, edit.servoMin, edit.servoMax);
 
     transport.send(lastAngle);
+
+    ui.drawRecording(playback.currentRecordingSlot(),
+                     playback.recordingSeconds());
 }
 
 void App::sendCurrentValue()

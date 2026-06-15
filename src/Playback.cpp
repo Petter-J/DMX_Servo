@@ -208,3 +208,32 @@ bool Playback::loadAllFromFlash()
     p.end();
     return true;
 }
+
+uint32_t Playback::recordingSeconds() const
+{
+    if (!recording || recSlot >= PLAYBACK_SLOTS)
+        return 0;
+
+    return ((uint32_t)slots[recSlot].len * SAMPLE_MS) / 1000;
+}
+
+uint32_t Playback::playbackSecondsRemaining() const
+{
+    if (!playing || playSlot >= PLAYBACK_SLOTS)
+        return 0;
+
+    const auto &s = slots[playSlot];
+
+    if (playPos >= s.len)
+        return 0;
+
+    return ((uint32_t)(s.len - playPos) * SAMPLE_MS) / 1000;
+}
+
+uint32_t Playback::slotSeconds(uint8_t slotIndex) const
+{
+    if (slotIndex >= PLAYBACK_SLOTS)
+        return 0;
+
+    return ((uint32_t)slots[slotIndex].len * SAMPLE_MS) / 1000;
+}

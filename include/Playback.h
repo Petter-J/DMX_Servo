@@ -14,16 +14,17 @@ public:
     bool isRecorded(uint8_t slotIndex) const;
     uint8_t lastRecordedSlot() const { return lastRecSlot; }
     uint8_t currentRecordingSlot() const { return recSlot; }
-
     uint8_t tickPlaybackValue();
-
     void startPlaying(uint8_t slotIndex);
     void stopPlaying();
     bool isPlaying() const;
     uint8_t currentPlayingSlot() const;
-
     bool saveAllToFlash();
     bool loadAllFromFlash();
+    uint32_t recordingSeconds() const;
+    uint32_t playbackSecondsRemaining() const;
+    uint32_t slotSeconds(uint8_t slotIndex) const;
+    
 
 private:
     static constexpr uint16_t MAX_SAMPLES = 6000;

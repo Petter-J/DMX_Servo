@@ -12,12 +12,18 @@ class DisplayOled
 {
 public:
     void begin();
-    void drawRun(const RuntimeSettings &rt, uint8_t currentValue, uint8_t angle, bool pbPlaying, uint8_t pbSlot1to9);
+    void drawRun(const RuntimeSettings &rt,
+                 uint8_t currentValue,
+                 uint8_t angle,
+                 bool pbPlaying,
+                 uint8_t pbSlot1to9,
+                 uint32_t pbRemainSec,
+                 uint32_t pbSlotSec);
+    void drawRecording(uint8_t slot, uint32_t recSec);
     void drawMainMenu(const Menu &menu, const RuntimeSettings &edit, const Playback &playback); // ändrad
     void drawEditInput(const RuntimeSettings &edit);
     void drawEditDmx(const RuntimeSettings &edit);
     void drawPlaybackRecList(const Menu &menu, const Playback &playback);
-    void drawRecording(uint8_t slot);
     void drawServoSetup(const RuntimeSettings &edit, uint8_t index);
     void drawEditServoMin(const RuntimeSettings &edit);
     void drawEditServoMax(const RuntimeSettings &edit);

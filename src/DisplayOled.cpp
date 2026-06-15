@@ -47,7 +47,13 @@ void DisplayOled::begin()
     delay(300);
 }
 
-void DisplayOled::drawRun(const RuntimeSettings &rt, uint8_t currentValue, uint8_t angle, bool pbPlaying, uint8_t pbSlot1to9)
+void DisplayOled::drawRun(const RuntimeSettings &rt,
+                          uint8_t currentValue,
+                          uint8_t angle,
+                          bool pbPlaying,
+                          uint8_t pbSlot1to9,
+                          uint32_t pbRemainSec,
+                          uint32_t pbSlotSec)
 {
     d.clearDisplay();
     d.setTextColor(SH110X_WHITE);
@@ -112,14 +118,51 @@ void DisplayOled::drawRun(const RuntimeSettings &rt, uint8_t currentValue, uint8
     }
     else
     {
-        d.print("PB:");
-        d.print(rt.selectedPlayback);
 
-        d.setTextSize(1);
-        d.setCursor(0, 45);
-        d.print("CHOOSE PB: +/-");
-        d.setCursor(0, 56);
-        d.print("START/STOP:PB ON/OFF");
+        d.setTextSize(2);
+        d.setCursor(0, 22);
+
+        char totalBuf[8];
+        snprintf(totalBuf, sizeof(totalBuf), "%lu:%02lu",
+                 pbSlotSec / 60,
+                 pbSlotSec % 60);
+
+        if (pbPlaying)
+        {
+            char leftBuf[8];
+            snprintf(leftBuf, sizeof(leftBuf), "%lu:%02lu",
+                     pbRemainSec / 60,
+                     pbRemainSec % 60);
+
+            d.setTextSize(2);
+
+            d.setCursor(0, 22);
+            d.print("Left:");
+            d.print(leftBuf);
+
+            d.setCursor(0, 45);
+            d.print("PB:");
+            d.print(rt.selectedPlayback);
+            d.print(" ");
+            d.print(totalBuf);
+        }
+        else
+        {
+            d.setTextSize(2);
+
+            d.setCursor(0, 22);
+            d.print("PB:");
+            d.print(rt.selectedPlayback);
+            d.print(" ");
+            d.print(totalBuf);
+
+            d.setTextSize(1);
+            d.setCursor(0, 45);
+            d.print("CHOOSE PB: +/-");
+
+            d.setCursor(0, 56);
+            d.print("START/STOP:PB ON/OFF");
+        }
     }
 
     d.display();
@@ -216,8 +259,17 @@ void DisplayOled::drawPlaybackRecList(const Menu &menu, const Playback &playback
         {
             d.print("Slot ");
             d.print(i + 1);
+
             if (playback.isRecorded(i))
-                d.print(" *");
+            {
+                uint32_t sec = playback.slotSeconds(i);
+
+                char buf[8];
+                snprintf(buf, sizeof(buf), "%lu:%02lu", sec / 60, sec % 60);
+
+                d.print("  ");
+                d.print(buf);
+            }
         }
         else
         {
@@ -229,7 +281,7 @@ void DisplayOled::drawPlaybackRecList(const Menu &menu, const Playback &playback
     d.display();
 }
 
-void DisplayOled::drawRecording(uint8_t slot)
+void DisplayOled::drawRecording(uint8_t slot, uint32_t recSec)
 {
     clearAndHome();
     d.setTextSize(1);
@@ -238,6 +290,13 @@ void DisplayOled::drawRecording(uint8_t slot)
     d.println(slot + 1);
 
     d.setCursor(0, 16);
+    d.print("Time: ");
+
+    char buf[8];
+    snprintf(buf, sizeof(buf), "%lu:%02lu", recSec / 60, recSec % 60);
+    d.println(buf);
+
+    d.setCursor(0, 54);
     d.println("STOP to stop");
 
     d.display();
